@@ -150,17 +150,14 @@ app.post('/mine', async (req, res) => {
     }
 });
 
-// Get transactions for a specific user
-app.get('/transactions/:address', async (req, res) => {
+// Get transactions of a specific user
+app.get('/transactions/user/:address', async (req, res) => {
     try {
         const { address } = req.params;
 
-        // Search for transactions sent or received by the address
+        // Fetch the transactions for the given user
         const transactions = await db.collection('transactions').find({
-            $or: [
-                { sender: address },
-                { receiver: address }
-            ]
+            $or: [{ sender: address }, { receiver: address }]
         }).toArray();
 
         if (transactions.length === 0) {
