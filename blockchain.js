@@ -150,6 +150,30 @@ app.post('/mine', async (req, res) => {
     }
 });
 
+// Get transactions for a specific user
+app.get('/transactions/:address', async (req, res) => {
+    try {
+        const { address } = req.params;
+
+        // Search for transactions sent or received by the address
+        const transactions = await db.collection('transactions').find({
+            $or: [
+                { sender: address },
+                { receiver: address }
+            ]
+        }).toArray();
+
+        if (transactions.length === 0) {
+            return res.status(404).json({ message: 'No transactions found for this user' });
+        }
+
+        res.json({ transactions });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Blockchain app listening at http://localhost:${port}`);
