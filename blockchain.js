@@ -34,6 +34,38 @@ app.use((req, res, next) => {
 });
 
 // Routes
+
+// Register new user
+app.post('/users/register', async (req, res) => {
+    try {
+        const { address, initialBalance } = req.body;
+
+        if (!address || !initialBalance) {
+            return res.status(400).json({ message: 'Address and initial balance are required' });
+        }
+
+        // Check if user already exists
+        const existingUser = await db.collection('users').findOne({ address });
+        if (existingUser) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        // Create a new user
+        const newUser = {
+            address,
+            balance: initialBalance || 0, // Default balance is 0 if not provided
+            createdAt: new Date(),
+        };
+
+        await db.collection('users').insertOne(newUser);
+
+        res.status(201).json({ message: 'User registered successfully', user: newUser });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
 // Get user balance
 app.get('/balance/:address', async (req, res) => {
     try {
