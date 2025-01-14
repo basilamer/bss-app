@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { MongoClient } = require('mongodb');
+const cors = require('cors'); // تمكين CORS
+const { body, validationResult } = require('express-validator'); // للتحقق من الصحة
 
 const app = express();
 const port = 3000;
@@ -22,6 +24,7 @@ MongoClient.connect(uri, { useUnifiedTopology: true })
 
 // Middleware
 app.use(bodyParser.json());
+app.use(cors()); // تمكين CORS
 
 // API Key Middleware
 const API_KEY = process.env.API_KEY;
@@ -36,13 +39,17 @@ app.use((req, res, next) => {
 // Routes
 
 // Register new user
-app.post('/users/register', async (req, res) => {
+app.post('/users/register', [
+    body('address').isString().notEmpty(),
+    body('initialBalance').isNumeric().optional(),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     try {
         const { address, initialBalance } = req.body;
-
-        if (!address || !initialBalance) {
-            return res.status(400).json({ message: 'Address and initial balance are required' });
-        }
 
         // Check if user already exists
         const existingUser = await db.collection('users').findOne({ address });
@@ -80,13 +87,18 @@ app.get('/balance/:address', async (req, res) => {
 });
 
 // Send transaction
-app.post('/transactions/send', async (req, res) => {
+app.post('/transactions/send', [
+    body('sender').isString().notEmpty(),
+    body('receiver').isString().notEmpty(),
+    body('amount').isNumeric().notEmpty(),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     try {
         const { sender, receiver, amount } = req.body;
-
-        if (!sender || !receiver || !amount) {
-            return res.status(400).json({ message: 'Invalid request body' });
-        }
 
         const senderUser = await db.collection('users').findOne({ address: sender });
         const receiverUser = await db.collection('users').findOne({ address: receiver });
@@ -119,13 +131,16 @@ app.post('/transactions/send', async (req, res) => {
 });
 
 // Mine BSS
-app.post('/mine', async (req, res) => {
+app.post('/mine', [
+    body('minerAddress').isString().notEmpty(),
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     try {
         const { minerAddress } = req.body;
-
-        if (!minerAddress) {
-            return res.status(400).json({ message: 'Miner address is required' });
-        }
 
         const miner = await db.collection('users').findOne({ address: minerAddress });
         if (!miner) {
